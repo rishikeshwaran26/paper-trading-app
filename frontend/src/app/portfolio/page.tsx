@@ -41,8 +41,8 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Initial Capital" value={p ? formatCurrency(p.initial_capital) : '-'} icon={<IndianRupee className="h-5 w-5" />} loading={isLoading} />
         <StatCard label="Available Cash" value={p ? formatCurrency(p.available_cash) : '-'} icon={<Wallet className="h-5 w-5" />} loading={isLoading} />
-        <StatCard label="Total Invested" value={p ? formatCurrency(p.invested_value) : '-'} icon={<BarChart3 className="h-5 w-5" />} loading={isLoading} />
-        <StatCard label="Current Value" value={p ? formatCurrency(p.current_value) : '-'} change={p?.total_unrealized_pl_percent} variant={(p?.total_unrealized_pl ?? 0) >= 0 ? 'profit' : 'loss'} icon={(p?.total_unrealized_pl ?? 0) >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />} loading={isLoading} />
+        <StatCard label="Total Invested" value={p ? formatCurrency(p.total_invested) : '-'} icon={<BarChart3 className="h-5 w-5" />} loading={isLoading} />
+        <StatCard label="Current Value" value={p ? formatCurrency(p.current_holdings_value) : '-'} change={p?.unrealized_pnl_percent} variant={(p?.unrealized_pnl ?? 0) >= 0 ? 'profit' : 'loss'} icon={(p?.unrealized_pnl ?? 0) >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />} loading={isLoading} />
       </div>
 
       {error && (
@@ -107,8 +107,8 @@ export default function PortfolioPage() {
 
       {p && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard label="Unrealized P&L" value={formatSignedCurrency(p.total_unrealized_pl)} change={p.total_unrealized_pl_percent} variant={p.total_unrealized_pl >= 0 ? 'profit' : 'loss'} />
-          <StatCard label="Realized P&L" value={formatSignedCurrency(p.total_realized_pl)} variant={p.total_realized_pl >= 0 ? 'profit' : 'loss'} />
+          <StatCard label="Unrealized P&L" value={formatSignedCurrency(p.unrealized_pnl)} change={p.unrealized_pnl_percent} variant={p.unrealized_pnl >= 0 ? 'profit' : 'loss'} />
+          <StatCard label="Realized P&L" value={formatSignedCurrency(p.realized_pnl)} variant={p.realized_pnl >= 0 ? 'profit' : 'loss'} />
         </div>
       )}
     </div>

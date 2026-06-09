@@ -21,9 +21,9 @@ export default function DashboardPage() {
   const [showTradeForm, setShowTradeForm] = useState(false);
 
   const p = data?.portfolio;
-  const holdings = data?.holdings ?? [];
-  const recentTrades = data?.recentTrades ?? [];
-  const activeAlertsCount = data?.activeAlertsCount ?? 0;
+  const holdings = data?.top_holdings ?? [];
+  const recentTrades = data?.recent_trades ?? [];
+  const activeAlertsCount = data?.active_alerts_count ?? 0;
 
   const handleTrade = async () => {
     if (!tradeSymbol || !tradeQty || !tradePrice) return;
@@ -76,9 +76,9 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Available Cash" value={p ? formatCurrency(p.available_cash) : '-'} icon={<Wallet className="h-5 w-5" />} loading={isLoading} />
-        <StatCard label="Total Invested" value={p ? formatCurrency(p.invested_value) : '-'} icon={<BarChart3 className="h-5 w-5" />} loading={isLoading} />
-        <StatCard label="Unrealized P&L" value={p ? formatSignedCurrency(p.total_unrealized_pl) : '-'} change={p?.total_unrealized_pl_percent} variant={(p?.total_unrealized_pl ?? 0) >= 0 ? 'profit' : 'loss'} icon={(p?.total_unrealized_pl ?? 0) >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />} loading={isLoading} />
-        <StatCard label="Realized P&L" value={p ? formatSignedCurrency(p.total_realized_pl) : '-'} variant={(p?.total_realized_pl ?? 0) >= 0 ? 'profit' : 'loss'} loading={isLoading} />
+        <StatCard label="Total Invested" value={p ? formatCurrency(p.total_invested) : '-'} icon={<BarChart3 className="h-5 w-5" />} loading={isLoading} />
+        <StatCard label="Unrealized P&L" value={p ? formatSignedCurrency(p.unrealized_pnl) : '-'} change={p?.unrealized_pnl_percent} variant={(p?.unrealized_pnl ?? 0) >= 0 ? 'profit' : 'loss'} icon={(p?.unrealized_pnl ?? 0) >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />} loading={isLoading} />
+        <StatCard label="Realized P&L" value={p ? formatSignedCurrency(p.realized_pnl) : '-'} variant={(p?.realized_pnl ?? 0) >= 0 ? 'profit' : 'loss'} loading={isLoading} />
       </div>
 
       {error && (

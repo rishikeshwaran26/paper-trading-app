@@ -4,10 +4,12 @@ import { apiClient } from '@/lib/api';
 const QUERY_KEY = ['dashboard'];
 
 type DashboardData = {
-  portfolio: import('@/types').Portfolio;
-  holdings: import('@/types').Holding[];
-  recentTrades: import('@/types').Trade[];
-  activeAlertsCount: number;
+  portfolio: import('@/types').Portfolio | null;
+  top_holdings: import('@/types').Holding[];
+  recent_trades: import('@/types').Trade[];
+  watchlist_count: number;
+  active_alerts_count: number;
+  open_positions_count: number;
 };
 
 export function useDashboard() {
