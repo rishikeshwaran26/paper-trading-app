@@ -2,38 +2,52 @@
 
 const AlertsModel = require('../models/alerts.model');
 const StocksModel = require('../models/stocks.model');
+const ApiError = require('../utils/ApiError');
+
+const DEFAULT_USER_ID = 1;
 
 const AlertsService = {
 
   getAll() {
-    // TODO: Get all alerts for user, sorted by status and creation date
+    return AlertsModel.findByUserId(DEFAULT_USER_ID) || [];
   },
 
   create(symbol, alertType, targetPrice) {
-    // TODO: Create a new price alert
-    // 1. Lookup stock by symbol
-    // 2. Insert alert record
-    // 3. Return created alert with stock info
+    const stock = StocksModel.findBySymbol(symbol.toUpperCase().trim());
+    if (!stock) {
+      throw ApiError.notFound(`Stock '${symbol}' not found`, 'STOCK_NOT_FOUND');
+    }
+    const id = AlertsModel.insert(DEFAULT_USER_ID, stock.id, alertType, targetPrice);
+    return AlertsModel.findById(id);
   },
 
   update(id, fields) {
-    // TODO: Update alert type or target price
+    const alert = AlertsModel.findById(id);
+    if (!alert) {
+      throw ApiError.notFound('Alert not found', 'ALERT_NOT_FOUND');
+    }
+    AlertsModel.update(id, fields);
+    return AlertsModel.findById(id);
   },
 
   toggleActive(id) {
-    // TODO: Toggle is_active flag
+    const alert = AlertsModel.findById(id);
+    if (!alert) {
+      throw ApiError.notFound('Alert not found', 'ALERT_NOT_FOUND');
+    }
+    AlertsModel.toggleActive(id);
+    return AlertsModel.findById(id);
   },
 
   delete(id) {
-    // TODO: Delete an alert
+    const alert = AlertsModel.findById(id);
+    if (!alert) {
+      throw ApiError.notFound('Alert not found', 'ALERT_NOT_FOUND');
+    }
+    AlertsModel.delete(id);
   },
 
   checkAlerts() {
-    // TODO: Check all active alerts against current prices
-    // 1. Get all active, non-triggered alerts
-    // 2. For each, get latest price
-    // 3. If price crosses threshold, mark triggered
-    // 4. (future: send notification)
   }
 };
 

@@ -4,31 +4,66 @@ const HoldingsModel = require('../models/holdings.model');
 const PriceHistoryModel = require('../models/priceHistory.model');
 const TargetsModel = require('../models/targets.model');
 const StopLossesModel = require('../models/stopLosses.model');
+const ApiError = require('../utils/ApiError');
+
+function round(val) {
+  return Math.round(val * 100) / 100;
+}
 
 const HoldingsService = {
 
   getAll() {
-    // TODO: Get all holdings with current prices and P&L
-    // 1. Get holdings from model
-    // 2. For each, get latest price
-    // 3. Compute current_value, unrealized_pl, unrealized_pl_percent
-    // 4. Return enriched holdings array
+    const holdings = HoldingsModel.findByPortfolioId(1) || [];
+    const latestPrices = PriceHistoryModel.getLatestPriceForAllStocks() || [];
+    const priceMap = {};
+    for (const row of latestPrices) {
+      priceMap[row.stock_id] = row;
+    }
+    return holdings.map(h => {
+      const priceRow = priceMap[h.stock_id];
+      const ltp = priceRow ? priceRow.close : h.average_buy_price;
+      const currentValue = round(h.quantity * ltp);
+      const unrealizedPl = round(currentValue - h.total_invested);
+      const unrealizedPlPercent = h.total_invested > 0 ? round((unrealizedPl / h.total_invested) * 100) : 0;
+      return {
+        ...h,
+        ltp,
+        current_value: currentValue,
+        unrealized_pl: unrealizedPl,
+        unrealized_pl_percent: unrealizedPlPercent,
+        day_change_percent: 0
+      };
+    });
   },
 
   getById(id) {
-    // TODO: Get single holding with targets, stop losses, and current price
-    // 1. Get holding
-    // 2. Get latest price
-    // 3. Get linked targets
-    // 4. Get linked stop losses
-    // 5. Return enriched holding
+    const holding = HoldingsModel.findById(id);
+    if (!holding) {
+      throw ApiError.notFound('Holding not found', 'HOLDING_NOT_FOUND');
+    }
+    const latestPrice = PriceHistoryModel.getLatestByStockId(holding.stock_id);
+    const ltp = latestPrice ? latestPrice.close : holding.average_buy_price;
+    const currentValue = round(holding.quantity * ltp);
+    const unrealizedPl = round(currentValue - holding.total_invested);
+    const unrealizedPlPercent = holding.total_invested > 0 ? round((unrealizedPl / holding.total_invested) * 100) : 0;
+    return {
+      ...holding,
+      ltp,
+      current_value: currentValue,
+      unrealized_pl: unrealizedPl,
+      unrealized_pl_percent: unrealizedPlPercent,
+      day_change_percent: 0,
+      targets: TargetsModel.findByHoldingId(id) || [],
+      stop_losses: StopLossesModel.findByHoldingId(id) || []
+    };
   },
 
   closePosition(id) {
-    // TODO: Force-close a position (admin/cleanup, not a standard sell)
-    // 1. Get holding
-    // 2. Delete holding and related targets/stop_losses
-    // 3. (does not create a trade or affect P&L — use sell for that)
+    const holding = HoldingsModel.findById(id);
+    if (!holding) {
+      throw ApiError.notFound('Holding not found', 'HOLDING_NOT_FOUND');
+    }
+    HoldingsModel.delete(id);
   }
 };
 
