@@ -11,24 +11,52 @@ const ChargesService = require('./charges.service');
 
 const DEFAULT_USER_ID = 1;
 
+function round(val) {
+  return Math.round(val * 100) / 100;
+}
+
 const SellService = {
   async executeSell({ symbol, quantity, price, tradeDate, notes }) {
-    const stock = StocksModel.findBySymbol(symbol);
-    if (!stock) throw ApiError.notFound(`Stock '${symbol}' not found`, 'STOCK_NOT_FOUND');
+    if (!symbol || typeof symbol !== 'string') {
+      throw ApiError.badRequest('Symbol is required and must be a string', 'VALIDATION_ERROR');
+    }
+    const normalizedSymbol = symbol.toUpperCase().trim();
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw ApiError.badRequest('Quantity must be a positive integer', 'VALIDATION_ERROR');
+    }
+
+    if (typeof price !== 'number' || price <= 0) {
+      throw ApiError.badRequest('Price must be a positive number', 'VALIDATION_ERROR');
+    }
+
+    if (tradeDate !== undefined && (typeof tradeDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(tradeDate))) {
+      throw ApiError.badRequest('Trade date must be in YYYY-MM-DD format', 'VALIDATION_ERROR');
+    }
+
+    const stock = StocksModel.findBySymbol(normalizedSymbol);
+    if (!stock) {
+      throw ApiError.notFound(`Stock '${normalizedSymbol}' not found`, 'STOCK_NOT_FOUND');
+    }
 
     const portfolio = PortfolioModel.findByUserId(DEFAULT_USER_ID);
-    if (!portfolio) throw ApiError.notFound('Portfolio not found', 'PORTFOLIO_NOT_FOUND');
+    if (!portfolio) {
+      throw ApiError.notFound('Portfolio not found. Configure initial capital first.', 'PORTFOLIO_NOT_FOUND');
+    }
 
     const holding = HoldingsModel.findByPortfolioAndStock(portfolio.id, stock.id);
-    if (!holding) throw ApiError.notFound(`No holding for '${symbol}'`, 'HOLDING_NOT_FOUND');
+    if (!holding) {
+      throw ApiError.notFound(`No holding for '${normalizedSymbol}'`, 'HOLDING_NOT_FOUND');
+    }
+
     if (holding.quantity < quantity) {
       throw ApiError.badRequest(
-        `Insufficient holding. You hold ${holding.quantity} shares of ${symbol}, but trying to sell ${quantity}`,
+        `Insufficient holding. You hold ${holding.quantity} shares of ${normalizedSymbol}, but trying to sell ${quantity}`,
         'INSUFFICIENT_HOLDING_QTY'
       );
     }
 
-    const tradeValue = quantity * price;
+    const tradeValue = round(quantity * price);
     const charges = ChargesService.calculateSellCharges(tradeValue);
 
     const sellCostBasis = round(holding.total_invested * (quantity / holding.quantity));
@@ -37,9 +65,15 @@ const SellService = {
     const realizedPnlPercent = sellCostBasis > 0 ? round((realizedPnl / sellCostBasis) * 100) : 0;
 
     const conn = db.get();
-    conn.run('BEGIN TRANSACTION');
+    conn.run('BEGIN IMMEDIATE TRANSACTION');
     try {
-      const tradeId = TradesModel.insert(portfolio.id, stock.id, 'SELL', quantity, price, tradeValue, tradeDate, notes);
+      const tradeId = TradesModel.insert(
+        portfolio.id, stock.id, 'SELL', quantity, price, tradeValue, tradeDate, notes || null
+      );
+      if (!tradeId) {
+        throw ApiError.internal('Failed to create trade record');
+      }
+
       TradeChargesModel.insert(tradeId, charges);
 
       const newQuantity = holding.quantity - quantity;
@@ -76,7 +110,5 @@ const SellService = {
     }
   }
 };
-
-function round(val) { return Math.round(val * 100) / 100; }
 
 module.exports = SellService;
