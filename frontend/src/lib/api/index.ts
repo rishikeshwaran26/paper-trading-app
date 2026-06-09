@@ -1,4 +1,4 @@
-export { apiClient } from './client';
+export { apiClient, ApiRequestError } from './client';
 export { portfolioApi } from './portfolio';
 export { holdingsApi } from './holdings';
 export { tradesApi } from './trades';

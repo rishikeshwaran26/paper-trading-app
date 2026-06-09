@@ -1,1 +1,8 @@
-export const watchlistApi = { getAll: () => {}, add: (data: unknown) => {}, remove: (id: number) => {} };
+import { apiClient } from './client';
+import type { StockWithPrice } from '@/types';
+
+export const watchlistApi = {
+  getAll: () => apiClient.get<StockWithPrice[]>('/watchlist'),
+  add: (symbol: string) => apiClient.post<StockWithPrice>('/watchlist', { symbol }),
+  remove: (id: number) => apiClient.del<{ message: string }>(`/watchlist/${id}`)
+};

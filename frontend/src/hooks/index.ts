@@ -5,3 +5,4 @@ export { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from './useWa
 export { useAlerts, useCreateAlert, useToggleAlert, useDeleteAlert } from './useAlerts';
 export { useStockSearch, useStockDetail, useStockPriceHistory } from './useStock';
 export { useJournalEntries, useJournalEntry, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from './useJournal';
+export { useDashboard } from './useDashboard';
