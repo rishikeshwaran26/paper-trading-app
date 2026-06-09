@@ -123,7 +123,7 @@ const PortfolioService = {
       const pnlPerShare = round(currentPrice - h.average_buy_price);
 
       return {
-        holding_id: h.id,
+        id: h.id,
         symbol: h.symbol,
         name: h.name,
         quantity: h.quantity,

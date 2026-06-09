@@ -24,6 +24,22 @@ export function DataTable<T>({
   emptyMessage = 'No data',
   onRowClick
 }: DataTableProps<T>) {
+  if (process.env.NODE_ENV === 'development' && data.length > 0) {
+    const seen = new Set<unknown>();
+    for (const item of data) {
+      const key = keyExtractor(item);
+      if (key == null) {
+        throw new Error(
+          `DataTable: keyExtractor returned ${String(key)} for an item. ` +
+          'Every row must have a stable unique key. Check that keyExtractor references an existing field on the data object.'
+        );
+      }
+      if (seen.has(key)) {
+        console.warn(`DataTable: duplicate key "${String(key)}" found. Rows must have unique keys.`);
+      }
+      seen.add(key);
+    }
+  }
   if (loading) {
     return (
       <div className="space-y-3 py-4">
