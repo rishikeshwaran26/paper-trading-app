@@ -1,24 +1,41 @@
 'use strict';
 
-// Aggregates data from multiple services for the dashboard page.
-// This is the only service that calls other services directly.
-
 const PortfolioService = require('./portfolio.service');
-const HoldingsService = require('./holdings.service');
 const TradesService = require('./trades.service');
 const WatchlistService = require('./watchlist.service');
 const AlertsModel = require('../models/alerts.model');
 
-const DashboardService = {
+const DEFAULT_USER_ID = 1;
 
+const DashboardService = {
   getDashboardData() {
-    // TODO: Aggregate all dashboard data
-    // 1. Portfolio summary from PortfolioService
-    // 2. Top holdings (sorted by current value, limit 5)
-    // 3. Recent trades (limit 10)
-    // 4. Watchlist preview (limit 5)
-    // 5. Active alerts count
-    // Return combined object
+    const portfolioSummary = PortfolioService.getSummary();
+
+    let topHoldings = [];
+    let holdingsCount = 0;
+    if (portfolioSummary) {
+      const detailed = PortfolioService.getDetailed();
+      holdingsCount = detailed ? detailed.holdings_count : 0;
+      if (detailed && detailed.holdings) {
+        topHoldings = detailed.holdings
+          .slice()
+          .sort((a, b) => b.current_value - a.current_value)
+          .slice(0, 5);
+      }
+    }
+
+    const recentTrades = TradesService.getAll({ limit: 10 });
+    const watchlistItems = WatchlistService.getAll();
+    const activeAlertsCount = AlertsModel.countActive(DEFAULT_USER_ID);
+
+    return {
+      portfolio: portfolioSummary,
+      top_holdings: topHoldings,
+      recent_trades: recentTrades,
+      watchlist_count: watchlistItems.length,
+      active_alerts_count: activeAlertsCount,
+      open_positions_count: holdingsCount
+    };
   }
 };
 

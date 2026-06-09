@@ -11,8 +11,8 @@ const TradesModel = {
     if (filters.from) { sql += ' AND t.trade_date >= ?'; params.push(filters.from); }
     if (filters.to) { sql += ' AND t.trade_date <= ?'; params.push(filters.to); }
     sql += ' ORDER BY t.trade_date DESC, t.created_at DESC';
-    if (filters.page && filters.limit) {
-      const offset = (filters.page - 1) * filters.limit;
+    if (filters.limit) {
+      const offset = filters.page ? (filters.page - 1) * filters.limit : 0;
       sql += ` LIMIT ? OFFSET ?`;
       params.push(filters.limit, offset);
     }

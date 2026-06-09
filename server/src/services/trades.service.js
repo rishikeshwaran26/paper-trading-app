@@ -3,22 +3,20 @@
 const TradesModel = require('../models/trades.model');
 
 const TradesService = {
-
-  getAll(filters) {
-    // TODO: Get all trades with optional filters
-    // Support: symbol, type (BUY/SELL), date range, pagination
+  getAll(filters = {}) {
+    return TradesModel.findAll(filters);
   },
 
   getById(id) {
-    // TODO: Get single trade with charges
+    return TradesModel.findById(id);
   },
 
   getByPortfolio(portfolioId) {
-    // TODO: Get all trades for a portfolio
+    return TradesModel.findByPortfolioId(portfolioId);
   },
 
   getByStock(stockId) {
-    // TODO: Get all trades for a specific stock
+    return TradesModel.findByStockId(stockId);
   }
 };
 
