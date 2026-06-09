@@ -1,34 +1,44 @@
 'use strict';
 
-const db = require('../config/database');
+const { run, getRow } = require('./base');
 
 const PortfolioModel = {
   findByUserId(userId) {
-    // TODO: SELECT * FROM portfolio WHERE user_id = ?
+    return getRow('SELECT * FROM portfolio WHERE user_id = ?', [userId]);
   },
 
   findById(id) {
-    // TODO: SELECT * FROM portfolio WHERE id = ?
+    return getRow('SELECT * FROM portfolio WHERE id = ?', [id]);
   },
 
   create(userId, initialCapital) {
-    // TODO: INSERT INTO portfolio (user_id, initial_capital, available_cash) VALUES (?, ?, ?)
+    run(
+      'INSERT INTO portfolio (user_id, initial_capital, available_cash) VALUES (?, ?, ?)',
+      [userId, initialCapital, initialCapital]
+    );
+    const { lastInsertId } = require('./base');
+    return lastInsertId();
   },
 
   updateCapital(id, initialCapital) {
-    // TODO: UPDATE portfolio SET initial_capital = ?, available_cash = ?, updated_at = datetime('now') WHERE id = ?
-  },
-
-  updateCash(id, newAvailableCash) {
-    // TODO: UPDATE portfolio SET available_cash = ?, updated_at = datetime('now') WHERE id = ?
+    run(
+      'UPDATE portfolio SET initial_capital = ?, available_cash = available_cash + (? - initial_capital), updated_at = datetime(\'now\') WHERE id = ?',
+      [initialCapital, initialCapital, id]
+    );
   },
 
   deductCash(id, amount) {
-    // TODO: UPDATE portfolio SET available_cash = available_cash - ?, updated_at = datetime('now') WHERE id = ?
+    run(
+      'UPDATE portfolio SET available_cash = round(available_cash - ?, 2), updated_at = datetime(\'now\') WHERE id = ?',
+      [amount, id]
+    );
   },
 
   addCash(id, amount) {
-    // TODO: UPDATE portfolio SET available_cash = available_cash + ?, updated_at = datetime('now') WHERE id = ?
+    run(
+      'UPDATE portfolio SET available_cash = round(available_cash + ?, 2), updated_at = datetime(\'now\') WHERE id = ?',
+      [amount, id]
+    );
   }
 };
 

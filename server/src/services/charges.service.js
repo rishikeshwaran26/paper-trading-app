@@ -1,34 +1,41 @@
 'use strict';
 
-const constants = require('../config/constants');
+const C = require('../config/constants');
 
-// Pure functions for computing Indian equity delivery charges.
-// No database calls — these are deterministic math functions.
+function computeBrokerage(tradeValue) {
+  const flat = C.BROKERAGE_FLAT;
+  const pct = tradeValue * C.BROKERAGE_PERCENT;
+  if (flat === 0 && C.BROKERAGE_PERCENT === 0) return 0;
+  if (C.BROKERAGE_PERCENT === 0) return flat;
+  if (flat === 0) return round(pct);
+  return round(Math.min(flat, pct));
+}
+
+function round(val) {
+  return Math.round(val * 100) / 100;
+}
 
 const ChargesService = {
-
   calculateBuyCharges(tradeValue) {
-    // TODO: Calculate and return buy-side charges breakdown
-    // brokerage = min(BROKERAGE_FLAT, tradeValue * BROKERAGE_PERCENT) or 0
-    // stt = 0 (no STT on buy for delivery)
-    // exchange_charges = tradeValue * EXCHANGE_CHARGE_RATE
-    // gst = GST_RATE * (brokerage + exchange_charges)
-    // sebi_charges = (tradeValue / SEBI_CRORE_THRESHOLD) * SEBI_CHARGE_RATE
-    // stamp_duty = tradeValue * STAMP_DUTY_RATE
-    // total = sum of all above
-    return { brokerage: 0, stt: 0, exchange_charges: 0, gst: 0, sebi_charges: 0, stamp_duty: 0, total: 0 };
+    const brokerage = computeBrokerage(tradeValue);
+    const stt = 0;
+    const exchange_charges = round(tradeValue * C.EXCHANGE_CHARGE_RATE);
+    const gst = round(C.GST_RATE * (brokerage + exchange_charges));
+    const sebi_charges = round((tradeValue / C.SEBI_CRORE_THRESHOLD) * C.SEBI_CHARGE_RATE);
+    const stamp_duty = round(tradeValue * C.STAMP_DUTY_RATE);
+    const total = round(brokerage + stt + exchange_charges + gst + sebi_charges + stamp_duty);
+    return { brokerage, stt, exchange_charges, gst, sebi_charges, stamp_duty, total };
   },
 
   calculateSellCharges(tradeValue) {
-    // TODO: Calculate and return sell-side charges breakdown
-    // brokerage = same formula as buy
-    // stt = tradeValue * STT_SELL_RATE
-    // exchange_charges = tradeValue * EXCHANGE_CHARGE_RATE
-    // gst = GST_RATE * (brokerage + exchange_charges)
-    // sebi_charges = (tradeValue / SEBI_CRORE_THRESHOLD) * SEBI_CHARGE_RATE
-    // stamp_duty = tradeValue * STAMP_DUTY_RATE
-    // total = sum of all above
-    return { brokerage: 0, stt: 0, exchange_charges: 0, gst: 0, sebi_charges: 0, stamp_duty: 0, total: 0 };
+    const brokerage = computeBrokerage(tradeValue);
+    const stt = round(tradeValue * C.STT_SELL_RATE);
+    const exchange_charges = round(tradeValue * C.EXCHANGE_CHARGE_RATE);
+    const gst = round(C.GST_RATE * (brokerage + exchange_charges));
+    const sebi_charges = round((tradeValue / C.SEBI_CRORE_THRESHOLD) * C.SEBI_CHARGE_RATE);
+    const stamp_duty = round(tradeValue * C.STAMP_DUTY_RATE);
+    const total = round(brokerage + stt + exchange_charges + gst + sebi_charges + stamp_duty);
+    return { brokerage, stt, exchange_charges, gst, sebi_charges, stamp_duty, total };
   }
 };
 

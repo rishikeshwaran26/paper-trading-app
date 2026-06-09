@@ -1,30 +1,57 @@
 'use strict';
 
-const db = require('../config/database');
+const { run, getRow, getAll, lastInsertId } = require('./base');
 
 const HoldingsModel = {
   findByPortfolioId(portfolioId) {
-    // TODO: SELECT h.*, s.symbol, s.name FROM holdings h JOIN stocks s ON s.id = h.stock_id WHERE h.portfolio_id = ?
+    return getAll(
+      `SELECT h.*, s.symbol, s.name
+       FROM holdings h
+       JOIN stocks s ON s.id = h.stock_id
+       WHERE h.portfolio_id = ?
+       ORDER BY s.symbol`,
+      [portfolioId]
+    );
   },
 
   findByPortfolioAndStock(portfolioId, stockId) {
-    // TODO: SELECT * FROM holdings WHERE portfolio_id = ? AND stock_id = ?
+    return getRow(
+      'SELECT * FROM holdings WHERE portfolio_id = ? AND stock_id = ?',
+      [portfolioId, stockId]
+    );
   },
 
   findById(id) {
-    // TODO: SELECT h.*, s.symbol, s.name FROM holdings h JOIN stocks s ON s.id = h.stock_id WHERE h.id = ?
+    return getRow(
+      `SELECT h.*, s.symbol, s.name
+       FROM holdings h
+       JOIN stocks s ON s.id = h.stock_id
+       WHERE h.id = ?`,
+      [id]
+    );
   },
 
   insert(portfolioId, stockId, quantity, avgPrice, totalInvested, totalCharges) {
-    // TODO: INSERT INTO holdings (portfolio_id, stock_id, quantity, average_buy_price, total_invested, total_buy_charges) VALUES (?, ?, ?, ?, ?, ?)
+    run(
+      `INSERT INTO holdings (portfolio_id, stock_id, quantity, average_buy_price, total_invested, total_buy_charges)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [portfolioId, stockId, quantity, avgPrice, totalInvested, totalCharges]
+    );
+    return lastInsertId();
   },
 
   update(holdingId, quantity, avgPrice, totalInvested, totalCharges) {
-    // TODO: UPDATE holdings SET quantity = ?, average_buy_price = ?, total_invested = ?, total_buy_charges = ?, updated_at = datetime('now') WHERE id = ?
+    run(
+      `UPDATE holdings
+       SET quantity = ?, average_buy_price = ?, total_invested = ?, total_buy_charges = ?,
+           updated_at = datetime('now')
+       WHERE id = ?`,
+      [quantity, avgPrice, totalInvested, totalCharges, holdingId]
+    );
   },
 
   delete(id) {
-    // TODO: DELETE FROM holdings WHERE id = ?
+    run('DELETE FROM holdings WHERE id = ?', [id]);
   }
 };
 

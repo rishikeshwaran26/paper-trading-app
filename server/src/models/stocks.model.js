@@ -1,26 +1,29 @@
 'use strict';
 
-const db = require('../config/database');
+const { getRow, getAll } = require('./base');
 
 const StocksModel = {
   search(query) {
-    // TODO: SELECT * FROM stocks WHERE symbol LIKE ? OR name LIKE ? ORDER BY symbol LIMIT 20
+    return getAll(
+      `SELECT * FROM stocks WHERE symbol LIKE ? OR name LIKE ? ORDER BY symbol LIMIT 20`,
+      [`%${query}%`, `%${query}%`]
+    );
   },
 
   findBySymbol(symbol) {
-    // TODO: SELECT * FROM stocks WHERE symbol = ?
+    return getRow('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
   },
 
   findById(id) {
-    // TODO: SELECT * FROM stocks WHERE id = ?
+    return getRow('SELECT * FROM stocks WHERE id = ?', [id]);
   },
 
   findBySector(sector) {
-    // TODO: SELECT * FROM stocks WHERE sector = ? ORDER BY symbol
+    return getAll('SELECT * FROM stocks WHERE sector = ? ORDER BY symbol', [sector]);
   },
 
   getAll() {
-    // TODO: SELECT * FROM stocks ORDER BY symbol
+    return getAll('SELECT * FROM stocks ORDER BY symbol');
   }
 };
 
