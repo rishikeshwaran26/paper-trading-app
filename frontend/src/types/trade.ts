@@ -1,3 +1,6 @@
+import { Holding } from './holding';
+import { Portfolio } from './portfolio';
+
 export interface Trade { id: number; portfolio_id: number; stock_id: number; symbol: string; trade_type: 'BUY' | 'SELL'; quantity: number; price: number; total_value: number; trade_date: string; notes: string | null; created_at: string }
 export interface TradeCharges { brokerage: number; stt: number; exchange_charges: number; gst: number; sebi_charges: number; stamp_duty: number; total_charges: number }
 export interface BuyTradeRequest { symbol: string; quantity: number; price: number; trade_date?: string; notes?: string; target_price?: number; stop_loss?: number }
