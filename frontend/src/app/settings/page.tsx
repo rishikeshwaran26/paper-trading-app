@@ -22,12 +22,19 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    setDarkMode(stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme:dark)').matches));
+  }, []);
+
+  useEffect(() => {
     if (portfolio) setInitialCapital(String(portfolio.initial_capital));
   }, [portfolio]);
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
   };
 
   const handleSaveCapital = async () => {
