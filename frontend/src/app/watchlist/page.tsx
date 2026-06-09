@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, TrendingUp, TrendingDown, Minus, StickyNote, Plus } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Minus, Trash2, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
@@ -15,17 +15,41 @@ export default function WatchlistPage() {
   const removeMutation = useRemoveFromWatchlist();
   const [search, setSearch] = useState('');
   const [addSymbol, setAddSymbol] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   const filtered = (stocks ?? []).filter(
     (s) => s.symbol.toLowerCase().includes(search.toLowerCase()) || s.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleAdd = async () => {
-    if (!addSymbol.trim()) return;
+    const symbol = addSymbol.trim().toUpperCase();
+    if (!symbol) return;
+    setAddError(null);
+    setAddSuccess(null);
     try {
-      await addMutation.mutateAsync(addSymbol.toUpperCase());
+      await addMutation.mutateAsync(symbol);
       setAddSymbol('');
-    } catch {}
+      setAddSuccess(`Added ${symbol}`);
+      setTimeout(() => setAddSuccess(null), 2500);
+    } catch (err) {
+      setAddError(err instanceof ApiRequestError ? err.message : 'Failed to add stock');
+    }
+  };
+
+  const handleRemove = async (watchlistId: number, symbol: string) => {
+    setRemovingId(watchlistId);
+    setRemoveError(null);
+    try {
+      await removeMutation.mutateAsync(watchlistId);
+      setRemoveError(null);
+    } catch (err) {
+      setRemoveError(err instanceof ApiRequestError ? err.message : `Failed to remove ${symbol}`);
+    } finally {
+      setRemovingId(null);
+    }
   };
 
   return (
@@ -37,9 +61,21 @@ export default function WatchlistPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="text" placeholder="Add symbol..." value={addSymbol} onChange={e => setAddSymbol(e.target.value.toUpperCase())} className="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
-          <button onClick={handleAdd} disabled={addMutation.isPending} className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"><Plus className="h-4 w-4" /> Add</button>
+          <button onClick={handleAdd} disabled={addMutation.isPending} className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            {addMutation.isPending ? 'Adding...' : <><Plus className="h-4 w-4" /> Add</>}
+          </button>
         </div>
       </div>
+
+      {addSuccess && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">{addSuccess}</div>
+      )}
+      {addError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">{addError}</div>
+      )}
+      {removeError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">{removeError}</div>
+      )}
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -72,8 +108,9 @@ export default function WatchlistPage() {
               ) : filtered.map((s) => {
                 const isUp = s.change_percent > 0;
                 const isDown = s.change_percent < 0;
+                const isRemoving = removingId === s.watchlist_id;
                 return (
-                  <tr key={s.symbol} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <tr key={`${s.symbol}-${s.watchlist_id}`} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3"><Link href={`/stocks/${s.symbol}`} className="font-medium text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">{s.symbol}</Link></td>
                     <td className="max-w-[200px] truncate px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{s.name}</td>
                     <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">{formatCurrency(s.ltp)}</td>
@@ -87,7 +124,14 @@ export default function WatchlistPage() {
                     <td className="px-4 py-3 text-right text-sm text-gray-700 dark:text-gray-300">{formatCurrency(s.day_low)}</td>
                     <td className="px-4 py-3 text-right text-sm text-gray-500 dark:text-gray-400">{(s.volume / 10000000).toFixed(1)}Cr</td>
                     <td className="px-4 py-3 text-right">
-                      <button className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"><StickyNote className="h-4 w-4" /></button>
+                      <button
+                        onClick={() => s.watchlist_id != null && handleRemove(s.watchlist_id, s.symbol)}
+                        disabled={isRemoving}
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-30 dark:hover:bg-red-950"
+                        title="Remove from watchlist"
+                      >
+                        {isRemoving ? <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" /> : <Trash2 className="h-4 w-4" />}
+                      </button>
                     </td>
                   </tr>
                 );

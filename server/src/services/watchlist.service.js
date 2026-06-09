@@ -29,6 +29,7 @@ const WatchlistService = {
       const change_percent = 0;
       return {
         id: item.stock_id,
+        watchlist_id: item.id,
         symbol: item.symbol,
         name: item.name,
         isin: '',
@@ -61,6 +62,7 @@ const WatchlistService = {
     const latestPrice = PriceHistoryModel.getLatestByStockId(stock.id);
     return item ? {
       id: stock.id,
+      watchlist_id: item.id,
       symbol: stock.symbol,
       name: stock.name,
       isin: stock.isin,
@@ -75,10 +77,14 @@ const WatchlistService = {
       day_high: latestPrice ? latestPrice.high : 0,
       day_low: latestPrice ? latestPrice.low : 0,
       volume: latestPrice ? latestPrice.volume : 0
-    } : { id: stock.id, symbol: stock.symbol, name: stock.name, isin: stock.isin, series: 'EQ', exchange: 'NSE', sector: stock.sector, industry: stock.industry, face_value: stock.face_value, ltp: 0, change: 0, change_percent: 0, day_high: 0, day_low: 0, volume: 0 };
+    } : { id: stock.id, watchlist_id: null, symbol: stock.symbol, name: stock.name, isin: stock.isin, series: 'EQ', exchange: 'NSE', sector: stock.sector, industry: stock.industry, face_value: stock.face_value, ltp: 0, change: 0, change_percent: 0, day_high: 0, day_low: 0, volume: 0 };
   },
 
-  remove(id) {
+  remove(rawId) {
+    const id = Number(rawId);
+    if (!Number.isFinite(id)) {
+      throw ApiError.badRequest('Invalid watchlist item id', 'VALIDATION_ERROR');
+    }
     const item = WatchlistModel.findByUserId(DEFAULT_USER_ID).find(w => w.id === id);
     if (!item) {
       throw ApiError.notFound('Watchlist item not found', 'WATCHLIST_ITEM_NOT_FOUND');
