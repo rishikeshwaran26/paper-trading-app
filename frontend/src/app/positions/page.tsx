@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatSignedCurrency, formatPercent, formatQuantity } from '@/lib/utils/formatters';
 import { useHoldings } from '@/hooks/useHoldings';
 import { useBuyTrade, useSellTrade } from '@/hooks/useTrades';
+import { useToast } from '@/providers';
 import { ApiRequestError } from '@/lib/api';
 
 export default function PositionsPage() {
   const { data: holdings, isLoading, error } = useHoldings();
   const buyMutation = useBuyTrade();
   const sellMutation = useSellTrade();
+  const { addToast } = useToast();
   const [sellSymbol, setSellSymbol] = useState('');
   const [sellQty, setSellQty] = useState('');
   const [sellPrice, setSellPrice] = useState('');
@@ -21,9 +23,12 @@ export default function PositionsPage() {
   const handleSell = async () => {
     if (!sellSymbol || !sellQty || !sellPrice) return;
     try {
-      await sellMutation.mutateAsync({ symbol: sellSymbol.toUpperCase(), quantity: Number(sellQty), price: Number(sellPrice) });
+      const result = await sellMutation.mutateAsync({ symbol: sellSymbol.toUpperCase(), quantity: Number(sellQty), price: Number(sellPrice) });
+      addToast('success', `Sold ${sellQty} ${sellSymbol.toUpperCase()} — P&L ${result.realized_pnl.realized_pnl >= 0 ? '+' : ''}${result.realized_pnl.realized_pnl.toFixed(2)}`);
       setSellSymbol(''); setSellQty(''); setSellPrice(''); setShowSellForm(false);
-    } catch {}
+    } catch (err) {
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Sell failed');
+    }
   };
 
   if (error) {
@@ -59,8 +64,6 @@ export default function PositionsPage() {
               {sellMutation.isPending ? 'Selling...' : 'Execute Sell'}
             </button>
           </div>
-          {sellMutation.error && <p className="mt-2 text-sm text-red-600">{(sellMutation.error as ApiRequestError).message}</p>}
-          {sellMutation.data && <p className="mt-2 text-sm text-emerald-600">Sell order executed! P&L: {formatSignedCurrency(sellMutation.data.realized_pnl.realized_pnl)}</p>}
         </Card>
       )}
 

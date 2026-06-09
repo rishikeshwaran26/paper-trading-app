@@ -7,17 +7,16 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatPercent } from '@/lib/utils/formatters';
 import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from '@/hooks/useWatchlist';
+import { useToast } from '@/providers';
 import { ApiRequestError } from '@/lib/api';
 
 export default function WatchlistPage() {
   const { data: stocks, isLoading, error } = useWatchlist();
   const addMutation = useAddToWatchlist();
   const removeMutation = useRemoveFromWatchlist();
+  const { addToast } = useToast();
   const [search, setSearch] = useState('');
   const [addSymbol, setAddSymbol] = useState('');
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addSuccess, setAddSuccess] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
 
   const filtered = (stocks ?? []).filter(
@@ -27,26 +26,22 @@ export default function WatchlistPage() {
   const handleAdd = async () => {
     const symbol = addSymbol.trim().toUpperCase();
     if (!symbol) return;
-    setAddError(null);
-    setAddSuccess(null);
     try {
       await addMutation.mutateAsync(symbol);
       setAddSymbol('');
-      setAddSuccess(`Added ${symbol}`);
-      setTimeout(() => setAddSuccess(null), 2500);
+      addToast('success', `Added ${symbol} to watchlist`);
     } catch (err) {
-      setAddError(err instanceof ApiRequestError ? err.message : 'Failed to add stock');
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Failed to add stock');
     }
   };
 
   const handleRemove = async (watchlistId: number, symbol: string) => {
     setRemovingId(watchlistId);
-    setRemoveError(null);
     try {
       await removeMutation.mutateAsync(watchlistId);
-      setRemoveError(null);
+      addToast('success', `Removed ${symbol} from watchlist`);
     } catch (err) {
-      setRemoveError(err instanceof ApiRequestError ? err.message : `Failed to remove ${symbol}`);
+      addToast('error', err instanceof ApiRequestError ? err.message : `Failed to remove ${symbol}`);
     } finally {
       setRemovingId(null);
     }
@@ -66,16 +61,6 @@ export default function WatchlistPage() {
           </button>
         </div>
       </div>
-
-      {addSuccess && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">{addSuccess}</div>
-      )}
-      {addError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">{addError}</div>
-      )}
-      {removeError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">{removeError}</div>
-      )}
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

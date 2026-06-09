@@ -6,12 +6,14 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useAlerts, useCreateAlert, useDeleteAlert } from '@/hooks/useAlerts';
+import { useToast } from '@/providers';
 import { ApiRequestError } from '@/lib/api';
 
 export default function AlertsPage() {
   const { data: alerts, isLoading, error } = useAlerts();
   const createMutation = useCreateAlert();
   const deleteMutation = useDeleteAlert();
+  const { addToast } = useToast();
 
   const [symbol, setSymbol] = useState('');
   const [type, setType] = useState<'ABOVE' | 'BELOW'>('ABOVE');
@@ -26,11 +28,19 @@ export default function AlertsPage() {
     try {
       await createMutation.mutateAsync({ symbol: symbol.toUpperCase(), alert_type: type, target_price: Number(target) });
       setSymbol(''); setTarget('');
-    } catch {}
+      addToast('success', `Alert created for ${symbol.toUpperCase()}`);
+    } catch (err) {
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Failed to create alert');
+    }
   };
 
   const handleDelete = async (id: number) => {
-    try { await deleteMutation.mutateAsync(id); } catch {}
+    try {
+      await deleteMutation.mutateAsync(id);
+      addToast('success', 'Alert deleted');
+    } catch (err) {
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Failed to delete alert');
+    }
   };
 
   return (
@@ -60,8 +70,7 @@ export default function AlertsPage() {
           <button onClick={handleCreate} disabled={createMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
             <Plus className="h-4 w-4" /> Create Alert
           </button>
-        </div>
-        {createMutation.error && <p className="mt-2 text-sm text-red-600">{(createMutation.error as ApiRequestError).message}</p>}
+          </div>
       </Card>
 
       {error && (

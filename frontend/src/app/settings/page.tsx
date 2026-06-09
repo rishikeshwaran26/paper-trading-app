@@ -5,6 +5,7 @@ import { Save, RotateCcw, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePortfolio, useSetCapital } from '@/hooks/usePortfolio';
+import { useToast } from '@/providers';
 import { ApiRequestError } from '@/lib/api';
 
 const DEFAULT_CHARGES = {
@@ -19,7 +20,7 @@ export default function SettingsPage() {
   const [initialCapital, setInitialCapital] = useState('200000');
   const [darkMode, setDarkMode] = useState(false);
   const [charges, setCharges] = useState(DEFAULT_CHARGES);
-  const [saved, setSaved] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -40,9 +41,10 @@ export default function SettingsPage() {
   const handleSaveCapital = async () => {
     try {
       await setCapitalMutation.mutateAsync(Number(initialCapital));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
+      addToast('success', 'Settings saved');
+    } catch (err) {
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Failed to save settings');
+    }
   };
 
   const resetCharges = () => setCharges(DEFAULT_CHARGES);
@@ -62,11 +64,10 @@ export default function SettingsPage() {
               <span className="text-lg text-gray-500 dark:text-gray-400">₹</span>
               <input type="number" value={initialCapital} onChange={(e) => setInitialCapital(e.target.value)} className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               <button onClick={handleSaveCapital} disabled={setCapitalMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-                <Save className="h-4 w-4" /> {saved ? 'Saved!' : 'Save'}
+                <Save className="h-4 w-4" /> Save
               </button>
             </div>
             {portfolio && <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Current available cash: {formatCurrency(portfolio.available_cash)}</p>}
-            {setCapitalMutation.error && <p className="mt-1 text-xs text-red-500">{(setCapitalMutation.error as ApiRequestError).message}</p>}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-700">

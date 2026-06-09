@@ -9,11 +9,14 @@ import { DataTable } from '@/components/ui/DataTable';
 import { formatCurrency, formatSignedCurrency, formatPercent, formatDate, formatQuantity } from '@/lib/utils/formatters';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useBuyTrade, useSellTrade } from '@/hooks/useTrades';
+import { useToast } from '@/providers';
+import { ApiRequestError } from '@/lib/api';
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useDashboard();
   const buyMutation = useBuyTrade();
   const sellMutation = useSellTrade();
+  const { addToast } = useToast();
   const [tradeSymbol, setTradeSymbol] = useState('');
   const [tradeQty, setTradeQty] = useState('');
   const [tradePrice, setTradePrice] = useState('');
@@ -29,11 +32,18 @@ export default function DashboardPage() {
     if (!tradeSymbol || !tradeQty || !tradePrice) return;
     const payload = { symbol: tradeSymbol.toUpperCase(), quantity: Number(tradeQty), price: Number(tradePrice) };
     try {
-      if (tradeType === 'BUY') await buyMutation.mutateAsync(payload);
-      else await sellMutation.mutateAsync(payload);
+      if (tradeType === 'BUY') {
+        await buyMutation.mutateAsync(payload);
+        addToast('success', `Bought ${payload.quantity} ${payload.symbol}`);
+      } else {
+        await sellMutation.mutateAsync(payload);
+        addToast('success', `Sold ${payload.quantity} ${payload.symbol}`);
+      }
       setTradeSymbol(''); setTradeQty(''); setTradePrice('');
       setShowTradeForm(false);
-    } catch {}
+    } catch (err) {
+      addToast('error', err instanceof ApiRequestError ? err.message : 'Trade failed');
+    }
   };
 
   return (
@@ -65,12 +75,6 @@ export default function DashboardPage() {
               {buyMutation.isPending || sellMutation.isPending ? 'Executing...' : `Place ${tradeType}`}
             </button>
           </div>
-          {(buyMutation.error || sellMutation.error) && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{(buyMutation.error ?? sellMutation.error)?.message}</p>
-          )}
-          {(buyMutation.data || sellMutation.data) && (
-            <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">{tradeType} order executed successfully</p>
-          )}
         </Card>
       )}
 
