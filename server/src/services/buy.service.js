@@ -13,15 +13,52 @@ const ChargesService = require('./charges.service');
 
 const DEFAULT_USER_ID = 1;
 
+function round(val) {
+  return Math.round(val * 100) / 100;
+}
+
+function formatAmount(val) {
+  return '\u20b9' + val.toFixed(2);
+}
+
 const BuyService = {
   async executeBuy({ symbol, quantity, price, tradeDate, notes, targetPrice, stopLoss }) {
-    const stock = StocksModel.findBySymbol(symbol);
-    if (!stock) throw ApiError.notFound(`Stock '${symbol}' not found`, 'STOCK_NOT_FOUND');
+    if (!symbol || typeof symbol !== 'string') {
+      throw ApiError.badRequest('Symbol is required and must be a string', 'VALIDATION_ERROR');
+    }
+    const normalizedSymbol = symbol.toUpperCase().trim();
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw ApiError.badRequest('Quantity must be a positive integer', 'VALIDATION_ERROR');
+    }
+
+    if (typeof price !== 'number' || price <= 0) {
+      throw ApiError.badRequest('Price must be a positive number', 'VALIDATION_ERROR');
+    }
+
+    if (tradeDate !== undefined && (typeof tradeDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(tradeDate))) {
+      throw ApiError.badRequest('Trade date must be in YYYY-MM-DD format', 'VALIDATION_ERROR');
+    }
+
+    if (targetPrice !== undefined && (typeof targetPrice !== 'number' || targetPrice <= 0)) {
+      throw ApiError.badRequest('Target price must be a positive number', 'VALIDATION_ERROR');
+    }
+
+    if (stopLoss !== undefined && (typeof stopLoss !== 'number' || stopLoss <= 0)) {
+      throw ApiError.badRequest('Stop loss must be a positive number', 'VALIDATION_ERROR');
+    }
+
+    const stock = StocksModel.findBySymbol(normalizedSymbol);
+    if (!stock) {
+      throw ApiError.notFound(`Stock '${normalizedSymbol}' not found`, 'STOCK_NOT_FOUND');
+    }
 
     const portfolio = PortfolioModel.findByUserId(DEFAULT_USER_ID);
-    if (!portfolio) throw ApiError.notFound('Portfolio not found', 'PORTFOLIO_NOT_FOUND');
+    if (!portfolio) {
+      throw ApiError.notFound('Portfolio not found. Configure initial capital first.', 'PORTFOLIO_NOT_FOUND');
+    }
 
-    const tradeValue = quantity * price;
+    const tradeValue = round(quantity * price);
     const charges = ChargesService.calculateBuyCharges(tradeValue);
     const totalDebit = round(tradeValue + charges.total);
 
@@ -33,9 +70,15 @@ const BuyService = {
     }
 
     const conn = db.get();
-    conn.run('BEGIN TRANSACTION');
+    conn.run('BEGIN IMMEDIATE TRANSACTION');
     try {
-      const tradeId = TradesModel.insert(portfolio.id, stock.id, 'BUY', quantity, price, tradeValue, tradeDate, notes);
+      const tradeId = TradesModel.insert(
+        portfolio.id, stock.id, 'BUY', quantity, price, tradeValue, tradeDate, notes || null
+      );
+      if (!tradeId) {
+        throw ApiError.internal('Failed to create trade record');
+      }
+
       TradeChargesModel.insert(tradeId, charges);
 
       const existingHolding = HoldingsModel.findByPortfolioAndStock(portfolio.id, stock.id);
@@ -50,8 +93,14 @@ const BuyService = {
       } else {
         const totalInvested = round(tradeValue + charges.total);
         const avgPrice = round(totalInvested / quantity);
-        const holdingId = HoldingsModel.insert(portfolio.id, stock.id, quantity, avgPrice, totalInvested, charges.total);
+        const holdingId = HoldingsModel.insert(
+          portfolio.id, stock.id, quantity, avgPrice, totalInvested, charges.total
+        );
         holding = HoldingsModel.findById(holdingId);
+      }
+
+      if (!holding) {
+        throw ApiError.internal('Failed to create or update holding');
       }
 
       PortfolioModel.deductCash(portfolio.id, totalDebit);
@@ -59,6 +108,7 @@ const BuyService = {
       if (targetPrice) {
         TargetsModel.insert(holding.id, stock.id, targetPrice, null);
       }
+
       if (stopLoss) {
         StopLossesModel.insert(holding.id, stock.id, stopLoss, null);
       }
@@ -67,6 +117,7 @@ const BuyService = {
 
       const updatedPortfolio = PortfolioModel.findById(portfolio.id);
       const trade = TradesModel.findById(tradeId);
+
       return { trade, charges, holding, portfolio: updatedPortfolio };
     } catch (err) {
       conn.run('ROLLBACK');
@@ -74,8 +125,5 @@ const BuyService = {
     }
   }
 };
-
-function round(val) { return Math.round(val * 100) / 100; }
-function formatAmount(val) { return '₹' + val.toFixed(2); }
 
 module.exports = BuyService;
