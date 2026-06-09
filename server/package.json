@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "seed": "node seed.js",
     "lint": "eslint src/"
   },
   "dependencies": {
